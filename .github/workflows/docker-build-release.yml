@@ -1,4 +1,4 @@
-name: "docker build release"
+name: "docker build release ${{ env.WORKFLOW_NAME }}"
 
 on:
   workflow_dispatch:
@@ -57,3 +57,5 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/${{ github.event.inputs.project }}:latest
             ${{ secrets.DOCKER_USERNAME }}/${{ github.event.inputs.project }}:${{ env.tag }}
+env:
+      WORKFLOW_NAME: ${{ github.event.inputs.project }}
