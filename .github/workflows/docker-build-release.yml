@@ -1,4 +1,4 @@
-name: "docker build release"
+name: "docker build release ${{ github.event.inputs.project }}"
 
 on:
   workflow_dispatch:
