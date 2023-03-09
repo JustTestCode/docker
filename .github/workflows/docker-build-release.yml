@@ -23,7 +23,7 @@ jobs:
 
       - name: Replace string in file
         run: |
-          sed -i 's/#SSH_PUB#/${{ secrets.SSH_PUB }}/g' Dockerfile
+          sed -i 's/@SSH_PUB@/${{ secrets.SSH_PUB }}/g' Dockerfile
         working-directory: ${{ github.event.inputs.project }}
 
       - name: Set tag
