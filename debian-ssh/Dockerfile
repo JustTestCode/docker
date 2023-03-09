@@ -4,7 +4,7 @@ RUN apt update && apt install openssh-server iproute2 -y
 RUN apt autoclean && apt autoremove
 RUN mkdir /root/.ssh
 RUN mkdir -p /var/run/sshd
-RUN echo "#ssh_pub#" | cat > /root/.ssh/authorized_keys
+RUN echo "$SSH_PUB$" | cat > /root/.ssh/authorized_keys
 RUN sed -i "s/#Port 22/Port 22222/" /etc/ssh/sshd_config \
     && chmod 600 /root/.ssh/authorized_keys \
     && sed -i '/Protocol/d' /etc/ssh/sshd_config \
