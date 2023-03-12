@@ -21,10 +21,10 @@ jobs:
         with:
           submodules: true
 
-      - name: Replace string in file
-        run: |
-          sed -i 's/@SSH_PUB@/${{ secrets.SSH_PUB }}/g' Dockerfile
-        working-directory: ${{ github.event.inputs.project }}
+      # - name: Replace string in file
+      #   run: |
+      #     sed -i 's/@SSH_PUB@/${{ secrets.SSH_PUB }}/g' Dockerfile
+      #   working-directory: ${{ github.event.inputs.project }}
 
       - name: Set tag
         id: tag
