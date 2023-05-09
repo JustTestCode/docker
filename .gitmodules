@@ -1,0 +1,6 @@
+[submodule "looking-glass"]
+path = looking-glass
+url = https://github.com/JustTestCode/als
+[submodule "looking-glass/modules/speedtest"]
+path = looking-glass/modules/speedtest
+url = https://github.com/librespeed/speedtest
