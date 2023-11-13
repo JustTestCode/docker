@@ -1,7 +1,7 @@
 FROM node:lts-slim
 
 ENV SESSION_KEY=""
-ENV VERSION 1.1.14
+ENV VERSION 1.1.16
 # Disable Prompt During Packages Installation
 ARG DEBIAN_FRONTEND=noninteractive
 
