@@ -2,19 +2,19 @@
 # https://github.com/openresty/docker-openresty
 
 ARG RESTY_IMAGE_BASE="alpine"
-ARG RESTY_IMAGE_TAG="3.17"
+ARG RESTY_IMAGE_TAG="3.19"
 
 FROM ${RESTY_IMAGE_BASE}:${RESTY_IMAGE_TAG}
-
+ENV VERSION 1.25.3.1
 LABEL maintainer="Evan Wies <evan@neomantra.net>"
-ENV VERSION 1.21.4.1
+
 # Docker Build Arguments
 ARG RESTY_IMAGE_BASE="alpine"
-ARG RESTY_IMAGE_TAG="3.17"
-ARG RESTY_VERSION="1.21.4.1"
-ARG RESTY_OPENSSL_VERSION="1.1.1t"
+ARG RESTY_IMAGE_TAG="3.19"
+ARG RESTY_VERSION="1.25.3.1"
+ARG RESTY_OPENSSL_VERSION="1.1.1w"
 ARG RESTY_OPENSSL_PATCH_VERSION="1.1.1f"
-ARG RESTY_OPENSSL_URL_BASE="https://www.openssl.org/source"
+ARG RESTY_OPENSSL_URL_BASE="https://www.openssl.org/source/old/1.1.1"
 ARG RESTY_PCRE_VERSION="8.45"
 ARG RESTY_PCRE_BUILD_OPTIONS="--enable-jit"
 ARG RESTY_PCRE_SHA256="4e6ce03e0336e8b4a3d6c2b70b1c5e18590a5673a98186da90d4f33c23defc09"
@@ -39,23 +39,25 @@ ARG RESTY_CONFIG_OPTIONS="\
     --with-http_stub_status_module \
     --with-http_sub_module \
     --with-http_v2_module \
+    --with-http_v3_module \
     --with-http_xslt_module=dynamic \
     --with-ipv6 \
     --with-mail \
     --with-mail_ssl_module \
     --with-md5-asm \
-    --with-pcre-jit \
     --with-sha1-asm \
     --with-stream \
     --with-stream_ssl_module \
     --with-threads \
     "
-ARG RESTY_CONFIG_OPTIONS_MORE=""
+ARG RESTY_CONFIG_OPTIONS_MORE="--add-module=ngx_cache_purge-2.3 --add-module=nginx-upstream-fair-0.1.3"
 ARG RESTY_LUAJIT_OPTIONS="--with-luajit-xcflags='-DLUAJIT_NUMMODE=2 -DLUAJIT_ENABLE_LUA52COMPAT'"
+ARG RESTY_PCRE_OPTIONS="--with-pcre-jit"
 
 ARG RESTY_ADD_PACKAGE_BUILDDEPS=""
 ARG RESTY_ADD_PACKAGE_RUNDEPS=""
 ARG RESTY_EVAL_PRE_CONFIGURE=""
+ARG RESTY_EVAL_POST_DOWNLOAD_PRE_CONFIGURE="echo -----------------下载第三方模块----------------- && curl -fSL http://labs.frickle.com/files/ngx_cache_purge-2.3.tar.gz -o ngx_cache_purge-2.3.tar.gz && tar xzf ngx_cache_purge-2.3.tar.gz && curl -fSL https://github.com/itoffshore/nginx-upstream-fair/archive/refs/tags/0.1.3.tar.gz -o nginx-upstream-fair-0.1.3.tar.gz && tar xzf nginx-upstream-fair-0.1.3.tar.gz"
 ARG RESTY_EVAL_POST_MAKE=""
 
 # These are not intended to be user-specified
@@ -79,8 +81,10 @@ LABEL resty_config_deps="${_RESTY_CONFIG_DEPS}"
 LABEL resty_add_package_builddeps="${RESTY_ADD_PACKAGE_BUILDDEPS}"
 LABEL resty_add_package_rundeps="${RESTY_ADD_PACKAGE_RUNDEPS}"
 LABEL resty_eval_pre_configure="${RESTY_EVAL_PRE_CONFIGURE}"
+LABEL resty_eval_post_download_pre_configure="${RESTY_EVAL_POST_DOWNLOAD_PRE_CONFIGURE}"
 LABEL resty_eval_post_make="${RESTY_EVAL_POST_MAKE}"
-
+LABEL resty_luajit_options="${RESTY_LUAJIT_OPTIONS}"
+LABEL resty_pcre_options="${RESTY_PCRE_OPTIONS}"
 
 RUN apk add --no-cache --virtual .build-deps \
     build-base \
@@ -105,6 +109,7 @@ RUN apk add --no-cache --virtual .build-deps \
     && cd /tmp \
     && if [ -n "${RESTY_EVAL_PRE_CONFIGURE}" ]; then eval $(echo ${RESTY_EVAL_PRE_CONFIGURE}); fi \
     && cd /tmp \
+    && echo curl -fSL "${RESTY_OPENSSL_URL_BASE}/openssl-${RESTY_OPENSSL_VERSION}.tar.gz" -o openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
     && curl -fSL "${RESTY_OPENSSL_URL_BASE}/openssl-${RESTY_OPENSSL_VERSION}.tar.gz" -o openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
     && tar xzf openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
     && cd openssl-${RESTY_OPENSSL_VERSION} \
@@ -141,17 +146,9 @@ RUN apk add --no-cache --virtual .build-deps \
     && cd /tmp \
     && curl -fSL https://openresty.org/download/openresty-${RESTY_VERSION}.tar.gz -o openresty-${RESTY_VERSION}.tar.gz \
     && tar xzf openresty-${RESTY_VERSION}.tar.gz \
-    && echo -----------------下载第三方模块----------------- \
-    && curl -fSL http://labs.frickle.com/files/ngx_cache_purge-2.3.tar.gz -o ngx_cache_purge-2.3.tar.gz \
-    && tar xzf ngx_cache_purge-2.3.tar.gz -C openresty-${RESTY_VERSION}/bundle \
-    && curl -fSL https://github.com/itoffshore/nginx-upstream-fair/archive/refs/tags/0.1.3.tar.gz -o nginx-upstream-fair-0.1.3.tar.gz \
-    && tar xzf nginx-upstream-fair-0.1.3.tar.gz -C openresty-${RESTY_VERSION}/bundle  \
     && cd /tmp/openresty-${RESTY_VERSION} \
-    && eval ./configure -j${RESTY_J} ${_RESTY_CONFIG_DEPS} ${RESTY_CONFIG_OPTIONS} ${RESTY_CONFIG_OPTIONS_MORE} ${RESTY_LUAJIT_OPTIONS} \
-    && echo -----------------这里追加自定义模块----------------- \
-    --add-module=bundle/ngx_cache_purge-2.3 \
-    --add-module=bundle/nginx-upstream-fair-0.1.3 \
-    && echo -----------------开始编译----------------- \
+    && if [ -n "${RESTY_EVAL_POST_DOWNLOAD_PRE_CONFIGURE}" ]; then eval $(echo ${RESTY_EVAL_POST_DOWNLOAD_PRE_CONFIGURE}); fi \
+    && eval ./configure -j${RESTY_J} ${_RESTY_CONFIG_DEPS} ${RESTY_CONFIG_OPTIONS} ${RESTY_CONFIG_OPTIONS_MORE} ${RESTY_LUAJIT_OPTIONS} ${RESTY_PCRE_OPTIONS} \
     && make -j${RESTY_J} \
     && make -j${RESTY_J} install \
     && cd /tmp \
@@ -160,25 +157,19 @@ RUN apk add --no-cache --virtual .build-deps \
     openssl-${RESTY_OPENSSL_VERSION}.tar.gz openssl-${RESTY_OPENSSL_VERSION} \
     pcre-${RESTY_PCRE_VERSION}.tar.gz pcre-${RESTY_PCRE_VERSION} \
     openresty-${RESTY_VERSION}.tar.gz openresty-${RESTY_VERSION} \
-    ngx_cache_purge-2.3.tar.gz \
-    nginx-upstream-fair-0.1.3.tar.gz \
     && apk del .build-deps \
     && mkdir -p /var/run/openresty \
-    && mkdir -p /usr/local/openresty/nginx/cache \
     && ln -sf /dev/stdout /usr/local/openresty/nginx/logs/access.log \
     && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log
+
 # Add additional binaries into PATH for convenience
 ENV PATH=$PATH:/usr/local/openresty/luajit/bin:/usr/local/openresty/nginx/sbin:/usr/local/openresty/bin
 
 # Copy nginx configuration files
-COPY ./config/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
-COPY ./config/default.crt /usr/local/openresty/nginx/cert/default.crt
-COPY ./config/default.key /usr/local/openresty/nginx/cert/default.key
-#COPY nginx.vh.default.conf /etc/nginx/conf.d/default.conf
-VOLUME /usr/local/openresty/nginx
-EXPOSE 80 443
-CMD ["/usr/local/openresty/bin/openresty", "-g", "daemon off;"]
+COPY config/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY config/default.conf /etc/nginx/conf.d/default.conf
 
+ENTRYPOINT [ "/run.sh" ]
 # Use SIGQUIT instead of default SIGTERM to cleanly drain requests
 # See https://github.com/openresty/docker-openresty/blob/master/README.md#tips--pitfalls
 STOPSIGNAL SIGQUIT
