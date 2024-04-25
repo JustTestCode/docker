@@ -168,7 +168,10 @@ ENV PATH=$PATH:/usr/local/openresty/luajit/bin:/usr/local/openresty/nginx/sbin:/
 # Copy nginx configuration files
 COPY config/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY config/default.conf /etc/nginx/conf.d/default.conf
+COPY run.sh /run.sh
+RUN chmod +x /run.sh
 
+EXPOSE 80 443
 ENTRYPOINT [ "/run.sh" ]
 # Use SIGQUIT instead of default SIGTERM to cleanly drain requests
 # See https://github.com/openresty/docker-openresty/blob/master/README.md#tips--pitfalls

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 cert_file=/usr/local/openresty/nginx/cert/default.crt
 cert_key_file=/usr/local/openresty/nginx/cert/default.key
@@ -24,4 +24,4 @@ fi
 # Start OpenResty
 echo "Starting OpenResty..."
 # Add your OpenResty startup command here
-/usr/local/openresty/bin/openresty -g daemon off
+/usr/local/openresty/bin/openresty -g "daemon off;"
